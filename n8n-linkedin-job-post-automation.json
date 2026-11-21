@@ -1,0 +1,679 @@
+{
+  "name": "Personal Brand Job Post Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "PERSONAL BRAND JOB POST AUTOMATION\n\nPURPOSE\nThis workflow automates the end-to-end process of publishing a job vacancy post to your personal LinkedIn profile. When a new job listing is submitted via a webhook, the workflow validates the incoming data, generates a professional social media caption using Gemini AI, creates a branded job poster image with your logo, and publishes both to LinkedIn automatically.\n\nWORKFLOW OVERVIEW\nThe flow runs in this order:\n1. Receive job data via webhook POST request\n2. Capture and map all relevant fields\n3. Validate that required fields are present\n4. Generate a LinkedIn caption using Gemini 2.5 Flash\n5. Build a detailed image generation prompt\n6. Download your brand logo from Google Drive\n7. Generate a job poster image using Gemini image editing\n8. Post the image and caption to your personal LinkedIn profile\n\nBEFORE YOU USE THIS WORKFLOW\nYou must replace all placeholder values marked as REPLACE_WITH_YOUR_... with your actual credentials and IDs. See the sticky notes on each section for exact instructions.\n\nWEBHOOK PAYLOAD REQUIREMENTS\nThe webhook expects a POST request body with these fields:\n- title (string, required)\n- link (string, required)\n- description (string)\n- company_name (string)\n- hide_company_name (boolean)\n- company_industry (string)\n- location (string)\n- employment_type (string): full_time or part_time\n- salary_type (string): negotiable or a fixed value\n- skills_required (string or array)\n- key_responsibilities (string or array)\n- education_level (string)\n- experience_level.level (string): junior, mid, or senior\n- slug (string)",
+        "height": 832,
+        "width": 720,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1520,
+        752
+      ],
+      "id": "024436f9-c011-4a43-b203-396cb640bf8b",
+      "name": "Sticky Note - Overview"
+    },
+    {
+      "parameters": {
+        "content": "STEP 1 - WEBHOOK ENTRY POINT\n\nThis node listens for incoming POST requests from your job board or any external system that triggers when a new job is published.\n\nSETUP REQUIRED\n- Authentication: Basic Auth. Go to Settings > Credentials > New > HTTP Basic Auth. Set a username and password of your choice, then connect the credential here.\n- Webhook Path: Currently set to personal-job-post-webhook. You can change this to any URL path you prefer.\n- After activating the workflow, copy the Production webhook URL from this node and paste it into your job board or triggering system as the destination endpoint.\n\nIMPORTANT: This node only accepts POST requests. GET requests will not trigger the workflow.",
+        "height": 376,
+        "width": 500,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2272,
+        448
+      ],
+      "id": "4e3ecc50-47cf-41ee-8b07-53bf74c78b0a",
+      "name": "Sticky Note - Webhook"
+    },
+    {
+      "parameters": {
+        "content": "STEP 2 - CAPTURE AND VALIDATE DATA\n\nCapture Job Data maps all incoming webhook body fields into clean named variables. These variables are referenced by name throughout the rest of the workflow so that each node does not need to reach back into the raw webhook payload directly.\n\nValidate Required Fields checks that jobTitle, jobUrl, and jobData are all present and non-empty before allowing the workflow to continue. If any of the three are missing, execution is routed to the Stop and Error node and the workflow halts immediately with a descriptive error message.\n\nNo setup is required for either of these nodes. They work automatically based on the incoming payload.",
+        "height": 300,
+        "width": 500,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2272,
+        848
+      ],
+      "id": "d96445bd-6590-475e-94bb-766d7516e9c0",
+      "name": "Sticky Note - Capture and Validate"
+    },
+    {
+      "parameters": {
+        "content": "STEP 3 - AI CAPTION GENERATION\n\nGenerate Caption sends the job data to Gemini 2.5 Flash with a detailed system prompt that enforces strict writing rules. The output is a professional LinkedIn caption that is factual, keyword-rich, and formatted for easy scanning.\n\nThe prompt controls company name visibility using the hide_company_name field. If it is true, the company name is never mentioned anywhere in the caption.\n\nSETUP REQUIRED in the Generate Caption node\nOpen the node and find the second message block (role: model). Locate and replace the following placeholders:\n- [YOUR BRAND NAME] with your actual brand or personal name, used in the role description at the top of the prompt\n- [YourBrandHashtag] with your preferred hashtag at the bottom of the caption\n- REPLACE_WITH_YOUR_EMAIL with your actual contact email address shown in the application info section\n\nAlso connect your Google Gemini API credential to this node. Obtain your API key from Google AI Studio at aistudio.google.com, then create a new Google PaLM API credential under Settings > Credentials.\n\nClean AI Output extracts the generated caption text from the Gemini response and carries forward the job fields needed by later nodes. No changes required here.",
+        "height": 588,
+        "width": 540,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2800,
+        544
+      ],
+      "id": "449cf365-7dac-448f-8524-f4a71cf95456",
+      "name": "Sticky Note - Caption Generation"
+    },
+    {
+      "parameters": {
+        "content": "STEP 4 - JOB POSTER IMAGE GENERATION\n\nThis section produces a fully branded job poster image in three stages.\n\nGenerate Poster Prompt asks Gemini 2.5 Flash to write a detailed visual design prompt using the job data. This text prompt is passed directly into the image generation model in the next stage.\n\nSETUP REQUIRED in Generate Poster Prompt\n- Find REPLACE_WITH_PRIMARY_HEX and replace it with your brand primary color in hex format, for example #3ABEF9\n- Find REPLACE_WITH_SECONDARY_HEX and replace it with your brand secondary color in hex format, for example #E11D48\n- Find REPLACE_WITH_YOUR_EMAIL and replace it with your contact email address, which will appear in the poster footer\n\nDownload Brand Logo fetches your logo PNG file from Google Drive so it can be passed to the image model.\n\nSETUP REQUIRED in Download Brand Logo\n- Open the node and replace REPLACE_WITH_YOUR_LOGO_FILE_ID with the actual file ID of your logo. The file ID is the string of characters in your Google Drive shareable link between /d/ and /view\n- Connect your Google Drive OAuth2 credential\n\nPrepare Logo Binary is a code node that renames the downloaded binary data to the correct key name expected by the image generation node. No changes are needed here.\n\nGenerate Job Poster passes both your logo and the generated text prompt to the Gemini image editing model. It is set to retry automatically on failure with a 5 second pause between attempts.\n\nConnect your Google Gemini API credential to both the Generate Poster Prompt node and the Generate Job Poster node.",
+        "height": 740,
+        "width": 580,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2928,
+        1168
+      ],
+      "id": "5469936b-4d40-40e7-95d4-9f1d485f915e",
+      "name": "Sticky Note - Image Generation"
+    },
+    {
+      "parameters": {
+        "content": "STEP 5 - LINKEDIN PUBLISHING\n\nPost to LinkedIn publishes the generated poster image and AI-written caption directly to your personal LinkedIn profile.\n\nSETUP REQUIRED\n- Connect your LinkedIn OAuth2 API credential. Go to Settings > Credentials > New > LinkedIn OAuth2 API and complete the OAuth authorization flow using your personal LinkedIn account login.\n- The node is configured to post as profile, meaning it posts on behalf of your personal account and not a company or organization page.\n- continueOnFail is enabled on this node. If LinkedIn rejects the post for any reason such as an expired token or a rate limit, the workflow will complete without throwing an error. Check the execution history regularly to confirm posts are succeeding.\n\nLINKEDIN API RATE LIMITS\nLinkedIn enforces daily and monthly limits on API posts for personal profiles. If you plan to post frequently, review LinkedIn's API documentation on share limits and monitor your usage to avoid having your access restricted.",
+        "height": 460,
+        "width": 520,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2960,
+        1984
+      ],
+      "id": "ad2970a1-82f7-4c38-a23c-53eda20d8f7e",
+      "name": "Sticky Note - LinkedIn"
+    },
+    {
+      "parameters": {
+        "content": "WAIT NODES - RATE LIMIT PROTECTION\n\nFour Wait nodes are distributed throughout the workflow to introduce deliberate pauses between API calls. These prevent hitting Gemini and LinkedIn rate limits when multiple steps run in quick succession.\n\nWait Before Caption - 1 second pause after validation, acts as a buffer before the first Gemini call\nWait Before Poster Prompt - 10 second pause after caption generation completes\nWait Before Image Gen - 10 second pause before calling the Gemini image editing model\nWait Before Posting - 2 second pause before making the LinkedIn API call\n\nIf you encounter rate limit errors from Gemini during testing or production, increase the wait durations in the relevant nodes. Do not remove these nodes.",
+        "height": 364,
+        "width": 500,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1616,
+        1616
+      ],
+      "id": "c6ad5414-ad70-4ea1-817b-34ba868340fe",
+      "name": "Sticky Note - Wait Nodes"
+    },
+    {
+      "parameters": {
+        "content": "CREDENTIALS CHECKLIST\n\nBefore activating this workflow, confirm that all four credentials are created and connected to their respective nodes.\n\n1. HTTP Basic Auth\n   Used by: Job Post Webhook\n   How to set up: Settings > Credentials > New > HTTP Basic Auth. Enter any username and password. This secures your webhook URL so only your job board can trigger it.\n\n2. Google PaLM API (Gemini)\n   Used by: Generate Caption, Generate Poster Prompt, Generate Job Poster\n   How to set up: Get your API key from aistudio.google.com. Then go to Settings > Credentials > New > Google PaLM API and paste the key.\n\n3. Google Drive OAuth2\n   Used by: Download Brand Logo\n   How to set up: Settings > Credentials > New > Google Drive OAuth2 API. Sign in with the Google account that owns the Drive folder containing your logo file.\n\n4. LinkedIn OAuth2 API\n   Used by: Post to LinkedIn\n   How to set up: Settings > Credentials > New > LinkedIn OAuth2 API. Complete the OAuth flow using your personal LinkedIn account.\n\nEvery REPLACE_WITH_YOUR_... placeholder in this workflow must be updated before the workflow is activated. Nodes with unresolved placeholders will fail at runtime.",
+        "height": 632,
+        "width": 520
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1616,
+        2016
+      ],
+      "id": "0c2739f8-7a41-4bd4-ae22-00fa8862d76a",
+      "name": "Sticky Note - Credentials Checklist"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "personal-job-post-webhook",
+        "authentication": "basicAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        2224,
+        1168
+      ],
+      "id": "67673b37-17b2-4b0a-a845-5aa2be0de716",
+      "name": "Job Post Webhook",
+      "webhookId": "REPLACE_WITH_YOUR_WEBHOOK_ID"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "assignment-1",
+              "name": "jobData",
+              "value": "={{ JSON.stringify($json.body) }}",
+              "type": "string"
+            },
+            {
+              "id": "assignment-2",
+              "name": "jobUrl",
+              "value": "={{ $json.body.link }}",
+              "type": "string"
+            },
+            {
+              "id": "assignment-3",
+              "name": "jobTitle",
+              "value": "={{ $json.body.title }}",
+              "type": "string"
+            },
+            {
+              "id": "assignment-4",
+              "name": "organizationName",
+              "value": "={{ $json.body.company_name }}",
+              "type": "string"
+            },
+            {
+              "id": "assignment-5",
+              "name": "organizationIndustry",
+              "value": "={{ $json.body.company_industry }}",
+              "type": "string"
+            },
+            {
+              "id": "assignment-6",
+              "name": "hideCompanyName",
+              "value": "={{ $json.body.hide_company_name }}",
+              "type": "boolean"
+            },
+            {
+              "id": "assignment-7",
+              "name": "jobSlug",
+              "value": "={{ $json.body.slug }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2448,
+        1168
+      ],
+      "id": "7e2b938a-969f-4c47-b6c7-52f9adfe80d0",
+      "name": "Capture Job Data"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{ $json.jobTitle }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "id": "condition-2",
+              "leftValue": "={{ $json.jobUrl }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "id": "condition-3",
+              "leftValue": "={{ $json.jobData }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2672,
+        1168
+      ],
+      "id": "105231c5-493e-4685-94e0-8b228d89240f",
+      "name": "Validate Required Fields"
+    },
+    {
+      "parameters": {
+        "errorMessage": "Required job data not received. Check webhook payload."
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        2224,
+        1376
+      ],
+      "id": "f7b1d0ca-16fc-4ac3-91f0-02a9acb3b324",
+      "name": "Stop and Error"
+    },
+    {
+      "parameters": {
+        "amount": 1
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2432,
+        1392
+      ],
+      "id": "9448210e-1a32-41b3-a204-1dea7821c0b6",
+      "name": "Wait Before Caption",
+      "webhookId": "12bf0537-99bb-4ad5-9096-56d9ef885b27"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ (() => {\n  const b = $('Job Post Webhook').item.json.body || {};\n  return [\n    `title: ${b.title ?? ''}`,\n    `description: ${b.description ?? ''}`,\n    `education_level: ${b.education_level ?? ''}`,\n    `employment_type: ${b.employment_type ?? ''}`,\n    `location: ${b.location ?? ''}`,\n    `salary_type: ${b.salary_type ?? ''}`,\n    `skills_required: ${Array.isArray(b.skills_required) ? b.skills_required.join(', ') : (b.skills_required ?? '')}`,\n    `company_name: ${b.company_name ?? ''}`,\n    `hide_company_name: ${b.hide_company_name ?? false}`,\n    `key_responsibilities: ${Array.isArray(b.key_responsibilities) ? b.key_responsibilities.join(', ') : (b.key_responsibilities ?? '')}`,\n    `experience_level: ${b.experience_level?.level ?? ''}`\n  ].join('\\n');\n})() }}"
+            },
+            {
+              "content": "=Role: Professional Social Media Job Caption Writer for [YOUR BRAND NAME]\nContext:\n[YOUR BRAND NAME] publishes job vacancies on behalf of client organizations. Captions must be short, keyword-focused, easy to scan, and strictly factual based ONLY on the provided job description and JSON inputs.\nCore Task:\nWrite a concise hiring caption that highlights the most important role keywords, tools, skills, and requirements. Use ONLY the information explicitly provided in the job description and JSON fields. Do NOT add, remove, assume, infer, embellish, generalize, or reword into a promotional tone.\nCRITICAL DATA CONTROL RULE:\nIf {{ $json.hideCompanyName }} is true, you MUST NOT display, reference, hint at, or imply the organization name anywhere in the caption.\nStrict Writing Rules:\n- Simple, minimal, professional, informational\n- Keyword-rich and easy to scan\n- No marketing or promotional language\n- No emotional, subjective, or value-judgment words\n- Do NOT use employer first-person voice\n- Do NOT add responsibilities, skills, tools, outcomes, or traits not explicitly listed\n- Do NOT include soft skills unless explicitly stated in the job description\n- Role overview must be EXACTLY 1-2 sentences\nFormatting Rules:\n- Plain text only\n- Use the bullet symbol for bullet points only\n- No emojis inside bullet points or paragraphs\n- Leave ONE blank line between major sections\n- Do NOT add blank lines between bullet points\nCompany Name Rules:\n- If hideCompanyName is true: [organizationIndustry] based industry is hiring a [Job Title].\n- If hideCompanyName is false AND organization_name exists: [Organization Name] is hiring a [Job Title].\n- If hideCompanyName is false AND organization_name is missing: A reputed company is hiring a [Job Title].\nCaption Structure (follow this exact order):\nHIRING: [Job Title]\n[Company Line]\nShort Role Overview (1-2 sentences only)\nYou Will Work On:\n- 3-5 key responsibilities from the job description\nWe Are Looking For:\n- 3-6 requirements/skills from the job description\nApplication Info:\nApply here: {{ $json.jobUrl }}\nor email: REPLACE_WITH_YOUR_EMAIL\nHashtags:\n- Role-specific and skill-specific only\n- Always include: #Hiring #OpenToWork\n- Always include: #[YourBrandHashtag]\nOutput Rule:\nReturn ONLY the final caption. No explanations, notes, or commentary.",
+              "role": "model"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        2624,
+        1392
+      ],
+      "id": "94b657da-bc6d-4d7b-ad42-53f43486bea5",
+      "name": "Generate Caption"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "assignment-1",
+              "name": "finalCaption",
+              "value": "={{ $json.content.parts[$json.content.parts.length - 1].text }}",
+              "type": "string"
+            },
+            {
+              "id": "assignment-2",
+              "name": "jobTitle",
+              "value": "={{ $('Capture Job Data').item.json.jobTitle }}",
+              "type": "string"
+            },
+            {
+              "id": "assignment-3",
+              "name": "organizationName",
+              "value": "={{ $('Capture Job Data').item.json.organizationName }}",
+              "type": "string"
+            },
+            {
+              "id": "assignment-4",
+              "name": "jobUrl",
+              "value": "={{ $('Capture Job Data').item.json.jobUrl }}",
+              "type": "string"
+            },
+            {
+              "id": "assignment-5",
+              "name": "jobSlug",
+              "value": "={{ $('Capture Job Data').item.json.jobSlug }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2192,
+        1616
+      ],
+      "id": "cb6fdf04-3f9b-484f-b89d-17014a27c0ad",
+      "name": "Clean AI Output"
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2416,
+        1616
+      ],
+      "id": "939c2c92-6941-4974-8055-7f9d7610c505",
+      "name": "Wait Before Poster Prompt",
+      "webhookId": "b5857145-20a1-4ca1-8641-6bda66c62aa1"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a senior Graphic Design Prompt Engineer. Output ONLY the final image generation prompt. No intro, no outro, no markdown code blocks, no quotes.\n\n[STRICT LAYOUT RULES]:\n- SINGLE LOGO PLACEMENT: Your brand logo must be placed in the TOP-RIGHT corner only.\n- SPELLING AND ACCURACY: Double-check the spelling of every word. No swapped letters, no missing characters.\n- TEXT SEPARATION: Clear physical gap between icons and their text labels. Icons and labels must never merge.\n- PALETTE: Strictly use your brand primary color REPLACE_WITH_PRIMARY_HEX, your brand secondary color REPLACE_WITH_SECONDARY_HEX, and #FFFFFF White.\n- RAW VALUE FORMATTING:\n  full_time becomes Full Time\n  part_time becomes Part Time\n  mid becomes Mid Level\n  junior becomes Junior Level\n  senior becomes Senior Level\n  negotiable becomes Negotiable\n\n[VISUAL SECTIONS]:\n1. TOP: Clean white header. TOP-RIGHT CORNER ONLY: Your brand logo. Left side of header must be completely empty.\n2. ANNOUNCEMENT: WE ARE HIRING in massive bold text using your primary brand color.\n3. TITLE: {{ $node[\"Job Post Webhook\"].json[\"body\"][\"title\"] }} in bold text.\n4. CHARACTER: Photorealistic professional person holding a tablet on the right side.\n5. 4-COLUMN DATA GRID: Horizontal layout. Each column has an icon on top and a label below.\n   Column 1: Map Pin Icon only. Label: {{ $node[\"Job Post Webhook\"].json[\"body\"][\"location\"] }}\n   Column 2: Clock Icon only. Label: transformed value of {{ $node[\"Job Post Webhook\"].json[\"body\"][\"employment_type\"] }}\n   Column 3: Briefcase Icon only. Label: transformed value of {{ $node[\"Job Post Webhook\"].json[\"body\"][\"experience_level\"]?.[\"level\"] ?? \"\" }}\n   Column 4: Money Bag Icon only. Label: transformed value of {{ $node[\"Job Post Webhook\"].json[\"body\"][\"salary_type\"] }}\n6. REQUIREMENTS: White box on left with colored checkmarks for: {{ $node[\"Job Post Webhook\"].json[\"body\"][\"skills_required\"] }}\n7. FOOTER: Two horizontal strips at the bottom.\n   Top strip: Primary brand color background, white text SEND YOUR CV AT centered.\n   Bottom strip: Secondary brand color background, white text REPLACE_WITH_YOUR_EMAIL centered.\n\n[OUTPUT FORMAT]:\n- Single paragraph. Plain text only.\n- Use terms: high-resolution, studio lighting, sharp focus, minimalist aesthetic.\n- No emojis."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        2640,
+        1616
+      ],
+      "id": "5913be48-6740-444a-afcf-67edf7079503",
+      "name": "Generate Poster Prompt"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_LOGO_FILE_ID",
+          "mode": "id"
+        },
+        "options": {
+          "fileName": "mybrandlogo"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2224,
+        1856
+      ],
+      "id": "40508e78-3621-4c25-b599-fc6570998c3c",
+      "name": "Download Brand Logo"
+    },
+    {
+      "parameters": {
+        "jsCode": "const dn1 = $node[\"Download Brand Logo\"].binary;\nconst key1 = Object.keys(dn1)[0];\n\nreturn {\n  json: $input.first().json,\n  binary: {\n    mybrandlogo: dn1[key1]\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2464,
+        1856
+      ],
+      "id": "7c890d0d-dffe-49c2-b109-314342e21166",
+      "name": "Prepare Logo Binary"
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2688,
+        1856
+      ],
+      "id": "d170fbeb-52e9-4ceb-ace3-6d18f7812e6e",
+      "name": "Wait Before Image Gen",
+      "webhookId": "f649c9ed-d77b-4b46-9a9a-b6dbdab37f0e"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "edit",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3-pro-image-preview",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3-pro-image-preview"
+        },
+        "prompt": "={{ $('Generate Poster Prompt').item.json.content.parts[0].text }}",
+        "images": {
+          "values": [
+            {
+              "binaryPropertyName": "mybrandlogo"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        2240,
+        2096
+      ],
+      "id": "f3d6bd56-0e9a-4ecb-a013-b415ce948019",
+      "name": "Generate Job Poster",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2464,
+        2096
+      ],
+      "id": "f126863c-2242-4ff0-bf3e-c2e22a0cb78c",
+      "name": "Wait Before Posting",
+      "webhookId": "52b1d5cc-5005-449a-bdf2-bc5149f2fb6a"
+    },
+    {
+      "parameters": {
+        "postAs": "profile",
+        "text": "={{ $('Clean AI Output').item.json.finalCaption }}",
+        "shareMediaCategory": "IMAGE",
+        "binaryPropertyName": "edited",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [
+        2688,
+        2096
+      ],
+      "id": "53da5b96-4c91-463d-ac3d-a1517f8f3487",
+      "name": "Post to LinkedIn",
+      "continueOnFail": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Job Post Webhook": {
+      "main": [
+        [
+          {
+            "node": "Capture Job Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Capture Job Data": {
+      "main": [
+        [
+          {
+            "node": "Validate Required Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Required Fields": {
+      "main": [
+        [
+          {
+            "node": "Wait Before Caption",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stop and Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Before Caption": {
+      "main": [
+        [
+          {
+            "node": "Generate Caption",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Caption": {
+      "main": [
+        [
+          {
+            "node": "Clean AI Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean AI Output": {
+      "main": [
+        [
+          {
+            "node": "Wait Before Poster Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Before Poster Prompt": {
+      "main": [
+        [
+          {
+            "node": "Generate Poster Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Poster Prompt": {
+      "main": [
+        [
+          {
+            "node": "Download Brand Logo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Brand Logo": {
+      "main": [
+        [
+          {
+            "node": "Prepare Logo Binary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Logo Binary": {
+      "main": [
+        [
+          {
+            "node": "Wait Before Image Gen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Before Image Gen": {
+      "main": [
+        [
+          {
+            "node": "Generate Job Poster",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Job Poster": {
+      "main": [
+        [
+          {
+            "node": "Wait Before Posting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Before Posting": {
+      "main": [
+        [
+          {
+            "node": "Post to LinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "55e9511b-6369-4388-bbed-5b3905cce8d1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
